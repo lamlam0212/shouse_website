@@ -1,0 +1,33 @@
+name: Kiểm tra chất lượng
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SITE_URL: https://example.com
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
+      - name: Cài Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Cài thư viện
+        run: npm ci
+      - name: Kiểm tra ESLint
+        run: npm run lint
+      - name: Kiểm tra TypeScript
+        run: npm run typecheck
+      - name: Chạy kiểm thử
+        run: npm test
+      - name: Kiểm tra production build
+        run: npm run build

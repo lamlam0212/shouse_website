@@ -1,0 +1,39 @@
+name: Kiểm tra Supabase RLS
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "scripts/sync-supabase-types.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/database-tests.yml"
+  push:
+    branches: [main, master]
+    paths:
+      - "supabase/**"
+      - "scripts/sync-supabase-types.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/database-tests.yml"
+
+jobs:
+  rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
+      - name: Cài Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Cài thư viện và Supabase CLI
+        run: npm ci
+      - name: Khởi động Supabase local
+        run: npm run db:start
+      - name: Kiểm tra Supabase types
+        run: npm run types:db:check
+      - name: Chạy kiểm thử RLS
+        run: npm run test:db
