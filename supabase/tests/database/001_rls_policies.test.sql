@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
-select plan(27);
+select plan(29);
 
 -- Dữ liệu trong file này chỉ tồn tại trong transaction kiểm thử và luôn rollback.
 insert into auth.users (
@@ -105,6 +105,15 @@ select lives_ok($$update public.products set name = 'Đã sửa bởi admin' whe
 select results_eq('select count(*) from storage.objects', array[2::bigint], 'Quản trị viên đọc được cả file công khai và file nháp');
 select results_eq('select count(*) from public.product_versions', array[1::bigint], 'Quản trị viên đọc được lịch sử phiên bản');
 select cmp_ok((select count(*) from public.audit_logs), '>=', 3::bigint, 'Trigger tự ghi nhật ký thay đổi');
+select lives_ok(
+  $$update public.site_settings set hotline = '0902020995', updated_by = '10000000-0000-0000-0000-000000000001' where id = 1$$,
+  'Quản trị viên có thể lưu cài đặt website'
+);
+select results_eq(
+  $$select action from public.audit_logs where entity_type = 'site_settings' and entity_id is null order by created_at desc, id desc limit 1$$,
+  array['updated'::text],
+  'Thay đổi cài đặt được ghi nhật ký mà không ép id smallint sang UUID'
+);
 select lives_ok(
   $$insert into public.categories (id, name, slug) values ('20000000-0000-0000-0000-000000000099', 'Danh mục tạm', 'danh-muc-tam'); delete from public.categories where id = '20000000-0000-0000-0000-000000000099'$$,
   'Trigger nhật ký xử lý được thao tác xóa'

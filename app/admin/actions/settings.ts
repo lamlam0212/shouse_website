@@ -151,6 +151,12 @@ export async function saveSettings(
   };
   const { error } = await supabase.from("site_settings").upsert({ id: 1, ...row });
   if (error) {
+    console.error("Không thể lưu site_settings", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     if (uploaded.length) await supabase.storage.from("product-assets").remove(uploaded);
     return { error: "Không thể lưu cài đặt." };
   }
