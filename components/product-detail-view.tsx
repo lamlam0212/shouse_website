@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlignLeft, ArrowLeft, Download, FileText, ListChecks, MessageCircle, Phone, ShieldAlert } from "lucide-react";
+import { AlignLeft, ArrowLeft, Download, FileText, ListChecks, MessageCircle, Phone } from "lucide-react";
 import type { Product, SiteSettings } from "@/lib/models";
 import { formatPrice } from "@/lib/models";
 import { ProductGallery } from "./product-gallery";
@@ -13,10 +13,9 @@ export function ProductDetailView({product,settings,preview=false}:{product:Prod
       <Link href={preview?`/admin/san-pham/${product.id}`:"/san-pham"} className="back-link"><ArrowLeft size={17}/> {preview?"Quay lại chỉnh sửa":"Quay lại danh sách"}</Link>
       <div className="detail-grid"><ProductGallery product={product}/><div className="detail-info">
         <span className="eyebrow">{product.categoryName}</span><h1>{product.name}</h1>
-        <p className="product-code">Mã sản phẩm: <strong>{product.code}</strong></p><p className="lead">{product.shortDescription}</p>
+        <p className="product-code">Mã sản phẩm: <strong>{product.code}</strong></p>{product.shortDescription&&<p className="lead">{product.shortDescription}</p>}
         <div className="detail-price"><span>Giá</span><strong>{formatPrice(product.price)}</strong></div>
         {(phone||zalo)&&<div className="detail-actions">{phone&&<a className="button button-primary" href={`tel:${phone}`}><Phone size={18}/> Gọi tư vấn</a>}{zalo&&<a className="button button-secondary" href={`https://zalo.me/${zalo}`} target="_blank" rel="noreferrer"><MessageCircle size={18}/> Nhắn Zalo</a>}</div>}
-        <div className="safety-note"><ShieldAlert/><p><strong>Lưu ý</strong><span>Việc lựa chọn và lắp đặt thiết bị điện cần được thực hiện bởi người có chuyên môn, theo tài liệu kỹ thuật chính thức.</span></p></div>
       </div></div>
     </div></section>
     <section className="section section-soft"><div className="container detail-content">

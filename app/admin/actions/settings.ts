@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth";
 import { revalidateSiteSettings } from "./cache";
 import { storageExtension, validateImage } from "./file-validation";
 import type { ActionState } from "./types";
+import { serializeWarrantyEditorContent } from "@/lib/warranty-editor-content";
 
 const settingsSchema = z.object({
   hotline: z.string().trim().max(30),
@@ -25,11 +26,15 @@ const settingsSchema = z.object({
   about: z.string().trim().max(3000),
   aboutKicker: z.string().trim().min(2).max(80),
   aboutTitle: z.string().trim().min(5).max(180),
-  aboutCtaLabel: z.string().trim().min(2).max(60),
-  aboutFeatures: z.array(z.object({
-    title: z.string().trim().min(2).max(100),
-    description: z.string().trim().min(2).max(240),
-  })).min(1).max(3),
+});
+
+const warrantyFieldsSchema = z.object({
+  intro: z.string().trim().max(500),
+  highlights: z.array(z.string().trim().max(400)).max(2),
+  coveredNote: z.string().trim().max(600),
+  coveredItems: z.array(z.string().trim().max(400)).max(20),
+  excludedNote: z.string().trim().max(600),
+  excludedItems: z.array(z.string().trim().max(400)).max(20),
 });
 
 async function uploadSiteImage(
@@ -49,13 +54,29 @@ export async function saveSettings(
   _: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const featureTitles = formData.getAll("aboutFeatureTitle");
-  const featureDescriptions = formData.getAll("aboutFeatureDescription");
-  const aboutFeatures = featureTitles.map((title, index) => ({
-    title: String(title),
-    description: String(featureDescriptions[index] || ""),
-  })).filter((feature) => feature.title.trim() || feature.description.trim());
   const heroTrustItems = formData.getAll("heroTrustItem").map(String).filter((item) => item.trim());
+  let about: FormDataEntryValue | string = formData.get("about") || "";
+  if (formData.get("warrantyMode") === "structured") {
+    const warranty = warrantyFieldsSchema.safeParse({
+      intro: formData.get("warrantyIntro") ?? "",
+      highlights: formData.getAll("highlights"),
+      coveredNote: formData.get("warrantyCoveredNote") ?? "",
+      coveredItems: formData.getAll("coveredItems"),
+      excludedNote: formData.get("warrantyExcludedNote") ?? "",
+      excludedItems: formData.getAll("excludedItems"),
+    });
+    if (!warranty.success) return { error: "Nội dung chính sách có dòng quá dài hoặc vượt số lượng cho phép." };
+    const oneLine = (value: string) => value.replace(/\s+/g, " ").trim().replace(/^(?:[-*]|\d+\.)\s+/, "");
+    about = serializeWarrantyEditorContent({
+      intro: warranty.data.intro,
+      highlights: warranty.data.highlights.map(oneLine).filter(Boolean),
+      coveredNote: warranty.data.coveredNote,
+      coveredItems: warranty.data.coveredItems.map(oneLine).filter(Boolean),
+      excludedNote: warranty.data.excludedNote,
+      excludedItems: warranty.data.excludedItems.map(oneLine).filter(Boolean),
+    });
+    if (about.length > 3000) return { error: "Nội dung chính sách vượt 3000 ký tự. Hãy rút gọn trước khi lưu." };
+  }
   const parsed = settingsSchema.safeParse({
     hotline: formData.get("hotline") || "",
     zalo: formData.get("zalo") || "",
@@ -70,11 +91,9 @@ export async function saveSettings(
     heroCardTitle: formData.get("heroCardTitle") || "",
     heroCardDescription: formData.get("heroCardDescription") || "",
     heroTrustItems,
-    about: formData.get("about") || "",
+    about,
     aboutKicker: formData.get("aboutKicker") || "",
     aboutTitle: formData.get("aboutTitle") || "",
-    aboutCtaLabel: formData.get("aboutCtaLabel") || "",
-    aboutFeatures,
   });
   if (!parsed.success) return { error: "Thông tin cài đặt hoặc nội dung giới thiệu không hợp lệ." };
 
@@ -142,8 +161,6 @@ export async function saveSettings(
     about: input.about,
     about_kicker: input.aboutKicker,
     about_title: input.aboutTitle,
-    about_features: input.aboutFeatures,
-    about_cta_label: input.aboutCtaLabel,
     updated_by: user.id,
     ...(logoUpload.path ? { logo_path: logoUpload.path } : {}),
     ...(heroUpload.path ? { hero_image_path: heroUpload.path } : removeHero ? { hero_image_path: null } : {}),

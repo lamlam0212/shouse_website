@@ -18,7 +18,7 @@ function inline(text:string):ReactNode[]{
   });
 }
 
-export function RichDescription({ content }: { content:string }){
+export function RichDescription({ content, separateLines = false }: { content:string; separateLines?:boolean }){
   const normalized=(content.trim()||"Nội dung đang được cập nhật.")
     .replace(/[ \t]+▪[ \t]+/g,"\n- ")
     .replace(/[ \t]+(?=🎁|👉)/g,"\n\n");
@@ -40,7 +40,7 @@ export function RichDescription({ content }: { content:string }){
       nodes.push(<ol key={key}>{items}</ol>);continue;
     }
     const paragraph=[line];const key=index;index+=1;
-    while(index<lines.length&&lines[index].trim()&&!/^(#{2,3} |[-*] |\d+\. )/.test(lines[index].trim())){paragraph.push(lines[index].trim());index+=1}
+    while(!separateLines&&index<lines.length&&lines[index].trim()&&!/^(#{2,3} |[-*] |\d+\. )/.test(lines[index].trim())){paragraph.push(lines[index].trim());index+=1}
     const paragraphText=paragraph.join(" ");
     const className=paragraphText.startsWith("🎁")?"description-highlight":paragraphText.startsWith("👉")?"description-cta":undefined;
     nodes.push(<p className={className} key={key}>{inline(paragraphText)}</p>);

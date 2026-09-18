@@ -13,7 +13,7 @@ const tools:Tool[] = [
   { label:"Liên kết", title:"Chèn liên kết", icon:LinkIcon, prefix:"[", suffix:"](https://)" },
 ];
 
-export function MarkdownEditor({ defaultValue = "", onDirty }: { defaultValue?:string;onDirty?:()=>void }) {
+export function MarkdownEditor({ defaultValue = "", onDirty, name = "description", id = name, maxLength, rows = 14, placeholder = "Viết mô tả sản phẩm…\n\nDùng thanh công cụ để thêm tiêu đề, danh sách, chữ đậm và liên kết.", helpText = "Nội dung được lưu ở định dạng Markdown an toàn. Không nhập thông số hoặc chứng nhận chưa được xác minh." }: { defaultValue?:string;onDirty?:()=>void;name?:string;id?:string;maxLength?:number;rows?:number;placeholder?:string;helpText?:string }) {
   const [value,setValue]=useState(defaultValue);
   const ref=useRef<HTMLTextAreaElement>(null);
 
@@ -24,16 +24,17 @@ export function MarkdownEditor({ defaultValue = "", onDirty }: { defaultValue?:s
     const lineStart=tool.line?value.lastIndexOf("\n",Math.max(0,start-1))+1:start;
     const prefix=tool.prefix;const suffix=tool.suffix||"";
     const next=value.slice(0,lineStart)+prefix+value.slice(lineStart,start)+selected+suffix+value.slice(end);
+    if(maxLength!==undefined&&next.length>maxLength)return;
     setValue(next);
     onDirty?.();
     requestAnimationFrame(()=>{input.focus();input.setSelectionRange(lineStart+prefix.length,end+prefix.length+suffix.length)});
   }
 
   return <div className="markdown-editor">
-    <div className="markdown-toolbar" role="toolbar" aria-label="Định dạng mô tả">
+    <div className="markdown-toolbar" role="toolbar" aria-label={`Định dạng ${name}`}>
       {tools.map(tool=>{const Icon=tool.icon;return <button key={tool.label} type="button" title={tool.title} onClick={()=>apply(tool)}><Icon/><span>{tool.label}</span></button>})}
     </div>
-    <textarea ref={ref} id="description" name="description" rows={14} value={value} onChange={event=>{setValue(event.target.value);onDirty?.()}} placeholder={"Viết mô tả sản phẩm…\n\nDùng thanh công cụ để thêm tiêu đề, danh sách, chữ đậm và liên kết."}/>
-    <small>Nội dung được lưu ở định dạng Markdown an toàn. Không nhập thông số hoặc chứng nhận chưa được xác minh.</small>
+    <textarea ref={ref} id={id} name={name} maxLength={maxLength} rows={rows} value={value} onChange={event=>{setValue(event.target.value);onDirty?.()}} placeholder={placeholder}/>
+    <small>{helpText}</small>
   </div>
 }

@@ -96,6 +96,36 @@ export async function saveProduct(
   return { success: "Đã lưu dữ liệu sản phẩm.", productId };
 }
 
+export async function updateProductPrice(productIdValue: string, priceValue: string): Promise<ActionState> {
+  const productId = z.string().uuid().safeParse(productIdValue);
+  const rawPrice = priceValue.trim();
+  if (!productId.success || (rawPrice !== "" && !/^\d{1,12}(?:\.\d{1,2})?$/.test(rawPrice))) {
+    return { error: "Giá phải là số không âm, tối đa 12 chữ số và 2 chữ số thập phân." };
+  }
+
+  const price = rawPrice === "" ? null : Number(rawPrice);
+  const { user, supabase } = await requireAdmin();
+  const { data: product, error: readError } = await supabase.from("products")
+    .select("price,slug").eq("id", productId.data).maybeSingle();
+  if (readError || !product) return { error: "Không tìm thấy sản phẩm để cập nhật giá." };
+  if (product.price === price) return { success: "Giá không thay đổi." };
+
+  try {
+    await recordProductSnapshot(supabase, productId.data, user.id, "update");
+  } catch {
+    return { error: "Không thể lưu phiên bản dự phòng. Giá chưa được thay đổi." };
+  }
+  const { data: updated, error: updateError } = await supabase.from("products")
+    .update({ price, updated_by: user.id }).eq("id", productId.data).select("id").maybeSingle();
+  if (updateError || !updated) return { error: "Không thể cập nhật giá sản phẩm. Vui lòng thử lại." };
+
+  revalidateCatalog();
+  revalidateAdminProducts();
+  revalidatePath(`/san-pham/${product.slug}`);
+  revalidatePath(`/admin/san-pham/${productId.data}`);
+  return { success: "Đã cập nhật giá sản phẩm." };
+}
+
 export async function setProductStatus(formData: FormData) {
   const id = z.string().uuid().parse(formData.get("id"));
   const status = z.enum(["draft", "published", "hidden"]).parse(formData.get("status"));
@@ -196,6 +226,25 @@ export async function reorderProductImages(productIdValue: string, imageIdsValue
   await supabase.from("products").update({ updated_by: user.id }).eq("id", productId);
   revalidatePath(`/admin/san-pham/${productId}`);
   revalidateCatalog();
+}
+
+export async function reorderProducts(productIdsValue: string[]): Promise<ActionState> {
+  const productIds = z.array(z.string().uuid()).max(2000).parse(productIdsValue);
+  if (new Set(productIds).size !== productIds.length) {
+    return { error: "Danh sách sản phẩm có dữ liệu trùng lặp." };
+  }
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase.rpc("admin_reorder_products", {
+    p_product_ids: productIds,
+  });
+  if (error) {
+    if (error.code === "PGRST202") return { error: "Hãy chạy migration 014 trước khi sắp xếp sản phẩm." };
+    return { error: "Không thể lưu thứ tự. Hãy tải lại trang và thử lại." };
+  }
+  revalidateCatalog();
+  revalidateAdminProducts();
+  revalidatePath("/admin/san-pham/sap-xep");
+  return { success: "Đã cập nhật thứ tự hiển thị sản phẩm." };
 }
 
 async function uniqueProductValue(kind: "code" | "slug", baseValue: string) {

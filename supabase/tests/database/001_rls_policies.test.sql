@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
-select plan(29);
+select plan(32);
 
 -- Dữ liệu trong file này chỉ tồn tại trong transaction kiểm thử và luôn rollback.
 insert into auth.users (
@@ -94,6 +94,12 @@ select throws_ok(
   'Administrator access required',
   'Người dùng thường không thể gắn file vào sản phẩm'
 );
+select throws_ok(
+  $$select public.admin_reorder_products(array['30000000-0000-0000-0000-000000000001'::uuid])$$,
+  '42501',
+  'Administrator access required',
+  'Người dùng thường không thể thay đổi thứ tự sản phẩm'
+);
 
 reset role;
 set local role authenticated;
@@ -105,6 +111,15 @@ select lives_ok($$update public.products set name = 'Đã sửa bởi admin' whe
 select results_eq('select count(*) from storage.objects', array[2::bigint], 'Quản trị viên đọc được cả file công khai và file nháp');
 select results_eq('select count(*) from public.product_versions', array[1::bigint], 'Quản trị viên đọc được lịch sử phiên bản');
 select cmp_ok((select count(*) from public.audit_logs), '>=', 3::bigint, 'Trigger tự ghi nhật ký thay đổi');
+select lives_ok(
+  $$select public.admin_reorder_products(array['30000000-0000-0000-0000-000000000001'::uuid])$$,
+  'Quản trị viên có thể lưu thứ tự sản phẩm đã xuất bản'
+);
+select results_eq(
+  $$select display_order from public.products where id = '30000000-0000-0000-0000-000000000001'$$,
+  array[0],
+  'Thứ tự hiển thị sản phẩm được lưu chính xác'
+);
 select lives_ok(
   $$update public.site_settings set hotline = '0902020995', updated_by = '10000000-0000-0000-0000-000000000001' where id = 1$$,
   'Quản trị viên có thể lưu cài đặt website'

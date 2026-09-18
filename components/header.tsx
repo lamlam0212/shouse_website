@@ -10,7 +10,7 @@ import type { SiteSettings } from "@/lib/models";
 const nav = [
   { href: "/", label: "Trang chủ" },
   { href: "/san-pham", label: "Sản phẩm" },
-  { href: "/#gioi-thieu", label: "Giới thiệu" },
+  { href: "/#gioi-thieu", label: "Chính sách bảo hành" },
   { href: "/#lien-he", label: "Liên hệ" },
 ];
 

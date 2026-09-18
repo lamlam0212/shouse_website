@@ -9,11 +9,11 @@ import { mapSignedUrls, publicImageUrl } from "./assets";
 type RawCategory = { id: string; name: string; slug: string; description: string; sort_order: number; is_active: boolean };
 type RawImage = { id: string; storage_path: string; alt_text: string; sort_order: number; is_cover: boolean };
 type RawSpec = { id: string; name: string; value: string; unit: string; sort_order: number };
-type RawProduct = { id: string; name: string; code: string; slug: string; category_id: string; short_description: string; description: string; price: number | string | null; status: Product["status"]; featured: boolean; pdf_path: string | null; created_at: string; categories: RawCategory | null; product_images: RawImage[] | null; product_specs: RawSpec[] | null };
+type RawProduct = { id: string; name: string; code: string; slug: string; category_id: string; short_description: string; description: string; price: number | string | null; status: Product["status"]; featured: boolean; pdf_path: string | null; display_order: number; created_at: string; categories: RawCategory | null; product_images: RawImage[] | null; product_specs: RawSpec[] | null };
 
-const PRODUCT_SELECT = "id,name,code,slug,category_id,short_description,description,price,status,featured,pdf_path,created_at,categories(id,name,slug,description,sort_order,is_active),product_images(id,storage_path,alt_text,sort_order,is_cover),product_specs(id,name,value,unit,sort_order)";
-const PRODUCT_LIST_SELECT = "id,name,code,slug,category_id,short_description,description,price,status,featured,created_at,categories(id,name,slug,description,sort_order,is_active),product_images(id,storage_path,alt_text,sort_order,is_cover)";
-const ADMIN_PRODUCT_LIST_SELECT = "id,name,code,slug,category_id,short_description,description,price,status,featured,created_at,categories(id,name,slug,description,sort_order,is_active)";
+const PRODUCT_SELECT = "id,name,code,slug,category_id,short_description,description,price,status,featured,pdf_path,display_order,created_at,categories(id,name,slug,description,sort_order,is_active),product_images(id,storage_path,alt_text,sort_order,is_cover),product_specs(id,name,value,unit,sort_order)";
+const PRODUCT_LIST_SELECT = "id,name,code,slug,category_id,short_description,description,price,status,featured,display_order,created_at,categories(id,name,slug,description,sort_order,is_active),product_images(id,storage_path,alt_text,sort_order,is_cover)";
+const ADMIN_PRODUCT_LIST_SELECT = "id,name,code,slug,category_id,short_description,description,price,status,featured,display_order,created_at,categories(id,name,slug,description,sort_order,is_active)";
 
 export type ProductPage = { items: Product[]; page: number; pageSize: number; total: number; totalPages: number };
 export type AdminProductStatus = Product["status"] | "all";
@@ -43,6 +43,7 @@ async function mapProducts(raw: RawProduct[], authenticated = false): Promise<Pr
     price: product.price == null ? undefined : Number(product.price),
     status: product.status,
     featured: product.featured,
+    displayOrder: product.display_order,
     tone: tones[index % tones.length],
     createdAt: product.created_at,
     images: (product.product_images ?? [])
@@ -71,6 +72,7 @@ async function loadProducts(admin = false): Promise<Product[]> {
   const supabase = admin ? await createServerClient() : createPublicClient();
   let query = supabase.from("products").select(PRODUCT_LIST_SELECT)
     .eq("product_images.is_cover", true)
+    .order("display_order")
     .order("created_at", { ascending: false });
   if (!admin) query = query.eq("status", "published");
   const { data, error } = await query;
@@ -94,7 +96,7 @@ async function loadPublishedProductsPage(search = "", categoryId: string | undef
   const safePageSize = Math.min(24, Math.max(1, Math.floor(pageSize)));
   const from = (safePage - 1) * safePageSize;
   const safeSearch = search.trim().slice(0, 80).replace(/[,()%]/g, " ");
-  let query = supabase.from("products").select(PRODUCT_LIST_SELECT, { count: "exact" }).eq("status", "published").eq("product_images.is_cover", true).order("created_at", { ascending: false }).range(from, from + safePageSize - 1);
+  let query = supabase.from("products").select(PRODUCT_LIST_SELECT, { count: "exact" }).eq("status", "published").eq("product_images.is_cover", true).order("display_order").order("created_at", { ascending: false }).range(from, from + safePageSize - 1);
   if (categoryId) query = query.eq("category_id", categoryId);
   if (safeSearch) query = query.or(`name.ilike.%${safeSearch}%,code.ilike.%${safeSearch}%`);
   const { data, count, error } = await query;
@@ -151,6 +153,17 @@ export async function getAdminProductsPage({ search = "", status = "all", page =
   if (error) throw new Error("Không thể tải danh sách sản phẩm quản trị.");
   const total = count ?? 0;
   return { items: await mapProducts((data ?? []) as unknown as RawProduct[], true), page: safePage, pageSize: safePageSize, total, totalPages: Math.max(1, Math.ceil(total / safePageSize)) };
+}
+
+export async function getAdminProductOrder(): Promise<Product[]> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase.from("products")
+    .select(ADMIN_PRODUCT_LIST_SELECT)
+    .eq("status", "published")
+    .order("display_order")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("Không thể tải thứ tự sản phẩm.");
+  return mapProducts((data ?? []) as unknown as RawProduct[], true);
 }
 
 export async function getAdminProductDashboard(): Promise<AdminProductDashboard> {

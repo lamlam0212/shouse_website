@@ -1,10 +1,11 @@
 "use client";
 import Image from "next/image";
-import { ImageUp,Info,MapPin,MessageCircle,Phone,Save } from "lucide-react";
+import { ImageUp,MapPin,MessageCircle,Phone,Save } from "lucide-react";
 import { useActionState, useEffect, useState, type ChangeEvent } from "react";
 import { saveSettings, useDefaultLogo } from "@/app/admin/actions/settings";
 import type { ActionState } from "@/app/admin/actions/types";
 import type { SiteSettings } from "@/lib/models";
+import { WarrantyContentEditor } from "@/components/admin/warranty-content-editor";
 import defaultLogo from "@/reference/logo-shouse.png";
 export function SettingsEditor({settings}:{settings:SiteSettings}){
   const[state,action,pending]=useActionState(saveSettings,{} as ActionState);
@@ -55,7 +56,7 @@ export function SettingsEditor({settings}:{settings:SiteSettings}){
         </div>
       </div>
       <div className="admin-card form-card settings-about">
-        <div className="card-head"><div><h2>Khu vực “Về S HOUSE”</h2><p>Chỉnh ảnh và toàn bộ nội dung đang hiển thị ở phần giới thiệu trên trang chủ.</p></div></div>
+        <div className="card-head"><div><h2>Chính sách mua hàng và bảo hành</h2><p>Chỉnh ảnh và nội dung chính sách hiển thị trên trang chủ.</p></div></div>
         <div className="about-settings-grid">
           <div className="about-settings-media">
             <div className="about-settings-preview">{displayedAboutImage?<Image src={displayedAboutImage} alt="Ảnh giới thiệu S HOUSE" fill sizes="(max-width: 760px) 100vw, 42vw" unoptimized/>:<div><ImageUp/><strong>Chưa có ảnh giới thiệu</strong><span>Trang chủ sẽ dùng nền minh họa mặc định.</span></div>}</div>
@@ -63,14 +64,7 @@ export function SettingsEditor({settings}:{settings:SiteSettings}){
             <p className="field-help">Nên dùng ảnh dọc hoặc vuông, JPG/PNG/WebP, tối đa 5 MB. {aboutFileName&&<strong>Đã chọn: {aboutFileName}</strong>}</p>
             {aboutImageError&&<p className="form-error" role="alert">{aboutImageError}</p>}
           </div>
-          <div className="about-settings-fields">
-            <div className="field"><label htmlFor="aboutKicker">Nhãn nhỏ</label><input id="aboutKicker" name="aboutKicker" required maxLength={80} defaultValue={settings.aboutKicker}/></div>
-            <div className="field"><label htmlFor="aboutTitle">Tiêu đề lớn</label><input id="aboutTitle" name="aboutTitle" required maxLength={180} defaultValue={settings.aboutTitle}/></div>
-            <div className="field"><label htmlFor="about">Nội dung giới thiệu</label><textarea id="about" name="about" maxLength={3000} rows={5} defaultValue={settings.about}/></div>
-            <div className="field"><label>Ba điểm nổi bật</label><div className="about-feature-editors">{settings.aboutFeatures.slice(0,3).map((feature,index)=><div className="about-feature-editor" key={index}><span>{index+1}</span><div><input name="aboutFeatureTitle" required maxLength={100} aria-label={`Tiêu đề điểm nổi bật ${index+1}`} defaultValue={feature.title}/><textarea name="aboutFeatureDescription" required maxLength={240} rows={2} aria-label={`Mô tả điểm nổi bật ${index+1}`} defaultValue={feature.description}/></div></div>)}</div></div>
-            <div className="field"><label htmlFor="aboutCtaLabel">Chữ trên nút</label><input id="aboutCtaLabel" name="aboutCtaLabel" required maxLength={60} defaultValue={settings.aboutCtaLabel}/></div>
-            <div className="security-hint"><Info/><p><strong>Lưu ý nội dung</strong><span>Chỉ công bố chứng nhận, thông số và cam kết khi có tài liệu xác thực.</span></p></div>
-          </div>
+          <WarrantyContentEditor key={settings.about} settings={settings}/>
         </div>
       </div>
     </div>

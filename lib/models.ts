@@ -5,7 +5,7 @@ export type Product = {
   id:string; name:string; code:string; slug:string; categoryId:string; category:string; categoryName:string;
   shortDescription:string; description:string; price?:number; status:"published"|"draft"|"hidden";
   featured:boolean; tone:"green"|"dark"|"light"|"red"; specs:ProductSpec[]; images:ProductImage[];
-  pdfPath?:string; pdfUrl?:string; createdAt?:string;
+  pdfPath?:string; pdfUrl?:string; createdAt?:string; displayOrder:number;
 };
 export type ProductVersion = { id:string; productId:string; versionNumber:number; changeType:"update"|"status"|"image"|"restore"; createdBy?:string; createdByName?:string; createdAt:string };
 export type AuditLog = { id:number; entityType:"product"|"category"|"site_settings"; entityId?:string; entityLabel:string; action:"created"|"updated"|"published"|"hidden"|"deleted"|"restored"|"duplicated"; actorId?:string; actorName?:string; createdAt:string };

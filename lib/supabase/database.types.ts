@@ -224,6 +224,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string
+          display_order: number
           featured: boolean
           id: string
           name: string
@@ -242,6 +243,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          display_order?: number
           featured?: boolean
           id?: string
           name: string
@@ -260,6 +262,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          display_order?: number
           featured?: boolean
           id?: string
           name?: string
@@ -395,6 +398,10 @@ export type Database = {
       admin_attach_product_assets: {
         Args: { p_images: Json; p_pdf_path: string; p_product_id: string }
         Returns: string
+      }
+      admin_reorder_products: {
+        Args: { p_product_ids: string[] }
+        Returns: undefined
       }
       admin_save_product: {
         Args: {

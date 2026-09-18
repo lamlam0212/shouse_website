@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:start": "supabase start --exclude edge-runtime,vector,analytics",
+    "db:start": "supabase start --exclude edge-runtime,vector",
     "db:reset": "supabase db reset && npm run types:db",
     "db:migrate": "supabase migration up && npm run types:db",
     "test:db": "supabase test db",
